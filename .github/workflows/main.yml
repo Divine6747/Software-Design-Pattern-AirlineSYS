@@ -30,6 +30,9 @@ jobs:
 
       - name: Set up MSBuild
         uses: microsoft/setup-msbuild@v2
+        
+      - name: Restore NuGet packages
+        run: nuget restore AirlineSYS.sln
 
       - name: Begin SonarQube analysis
         shell: pwsh
