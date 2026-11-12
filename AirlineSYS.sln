@@ -5,6 +5,8 @@ VisualStudioVersion = 17.7.34031.279
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AirlineSYS", "AirlineSYS\AirlineSYS.csproj", "{59424B67-F4FA-4737-BDE2-07A947D76ED6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AirlineSYS.Tests", "AirlineSYS.Tests\AirlineSYS.Tests.csproj", "{F9AE29B1-09E4-41FD-BEC6-30F31DAF5E6B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{59424B67-F4FA-4737-BDE2-07A947D76ED6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{59424B67-F4FA-4737-BDE2-07A947D76ED6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{59424B67-F4FA-4737-BDE2-07A947D76ED6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F9AE29B1-09E4-41FD-BEC6-30F31DAF5E6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9AE29B1-09E4-41FD-BEC6-30F31DAF5E6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9AE29B1-09E4-41FD-BEC6-30F31DAF5E6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9AE29B1-09E4-41FD-BEC6-30F31DAF5E6B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
