@@ -7,6 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using AirlineSYS.Services;
+using Oracle.ManagedDataAccess.Client;
 
 namespace AirlineSYS
 {
@@ -14,16 +16,19 @@ namespace AirlineSYS
     {
         frmAirlineMainMenu parent;
         private DateTime originalFlightDate;
+        private readonly IBookingService bookingService;
 
         public frmUpdateBooking()
         {
             InitializeComponent();
             this.StartPosition = FormStartPosition.CenterScreen;
+            bookingService = new BookingService();
         }
         public frmUpdateBooking(frmAirlineMainMenu parent)
         {
             InitializeComponent();
             this.parent = parent;
+            bookingService = new BookingService();
         }
 
         private void munBack_Click(object sender, EventArgs e)
@@ -85,43 +90,43 @@ namespace AirlineSYS
         }        
         private void btnUpadateBookingConfirm_Click(object sender, EventArgs e)
         {
-
             int passengerID = Convert.ToInt32(lblUpdatePassengerID.Text);
+
             if (!ValidateUpdatedBookingPersonalDetails.ValidatePersonalDetails(txtUpdateForeName.Text, txtUpdateSurname.Text, dtpDOBUpdate.Value, txtUpdateBookingEmail.Text, txtUpdateBooingPhone.Text, txtUpdateEircode.Text) || !ValidateUpdatedBookingPersonalDetails.ValidateNumBaggage(Convert.ToInt32(nudNumBaggage.Value)))
             {
                 return;
             }
-            else
+
+            try
             {
-                Passenger updatedPassenger = new Passenger(
-                    Convert.ToInt32(lblUpdatePassengerID.Text),
-                    txtUpdateForeName.Text,
-                    txtUpdateSurname.Text,
-                    DateTime.Parse(dtpDOBUpdate.Text),
-                    txtUpdateBookingEmail.Text,
-                    txtUpdateBooingPhone.Text,
-                    txtUpdateEircode.Text
-                );
+                string forename = txtUpdateForeName.Text;
+                string surname = txtUpdateSurname.Text;
+                DateTime dateOfBirth = DateTime.Parse(dtpDOBUpdate.Text);
+                string email = txtUpdateBookingEmail.Text;
+                string phone = txtUpdateBooingPhone.Text;
+                string eircode = txtUpdateEircode.Text;
 
-                updatedPassenger.updatePassenger(passengerID);
+                bool passengerUpdated = bookingService.UpdatePassenger(passengerID, forename, surname, dateOfBirth, email, phone, eircode);
 
-                Booking updatedBooking = new Booking(
-                    Convert.ToInt32(lblUpdateBookingID.Text),
-                    Convert.ToInt32(lblUpdatePassengerID.Text),
-                    Convert.ToInt32(lblUpdateBookingRouteID.Text),
-                    lblUpdateFlightNumber.Text,
-                    cboDeptimeDetail.Text,
-                    DateTime.Parse(dptUpdateBookingDate.Text),
-                    Convert.ToInt32(lblSeatNumDetail.Text),
-                    Convert.ToInt32(nudNumBaggage.Value),
-                    Convert.ToDecimal(lbFlightBookingPriceDetail.Text),
-                    "CONFIRMED"
-                );
+                if (passengerUpdated == false)
+                {
+                    MessageBox.Show("Passenger ID not found!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                MessageBox.Show("Passenger details updated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                Booking updatedBooking = new Booking(Convert.ToInt32(lblUpdateBookingID.Text), Convert.ToInt32(lblUpdatePassengerID.Text), Convert.ToInt32(lblUpdateBookingRouteID.Text), lblUpdateFlightNumber.Text, cboDeptimeDetail.Text, DateTime.Parse(dptUpdateBookingDate.Text), Convert.ToInt32(lblSeatNumDetail.Text), Convert.ToInt32(nudNumBaggage.Value), Convert.ToDecimal(lbFlightBookingPriceDetail.Text), "CONFIRMED");
 
                 updatedBooking.updateBooking();
-
-                MessageBox.Show("Booking and passenger details have been updated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                MessageBox.Show("Booking details have been updated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (OracleException ex)
+            {
+                MessageBox.Show("Oracle Exception: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Exception: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
