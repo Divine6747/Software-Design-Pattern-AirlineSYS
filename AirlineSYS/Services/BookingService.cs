@@ -1,106 +1,85 @@
 ﻿
 using System;
 using Oracle.ManagedDataAccess.Client;
+using AirlineSYS.Repositories;
 
 namespace AirlineSYS.Services
 {
     public class BookingService : IBookingService
     {
         private readonly string connectionString;
+        private readonly IBookingRepository bookingRepository;
+        private readonly IPassengerRepository passengerRepository;
+        private readonly IFlightRepository flightRepository;
 
         public BookingService() : this(DBConnect.oradb)
         {
         }
 
-        public BookingService(string connectionString)
+        public BookingService(string connectionString) : this(connectionString, new BookingRepository(), new PassengerRepository(), new FlightRepository())
+        {
+        }
+
+        public BookingService(string connectionString, IBookingRepository bookingRepository, IPassengerRepository passengerRepository, IFlightRepository flightRepository)
         {
             if (string.IsNullOrWhiteSpace(connectionString))
             {
                 throw new ArgumentException("Connection string cannot be empty.", nameof(connectionString));
             }
 
+            if (bookingRepository == null)
+            {
+                throw new ArgumentNullException(nameof(bookingRepository));
+            }
+
+            if (passengerRepository == null)
+            {
+                throw new ArgumentNullException(nameof(passengerRepository));
+            }
+
+            if (flightRepository == null)
+            {
+                throw new ArgumentNullException(nameof(flightRepository));
+            }
+
             this.connectionString = connectionString;
+            this.bookingRepository = bookingRepository;
+            this.passengerRepository = passengerRepository;
+            this.flightRepository = flightRepository;
         }
 
         public bool CancelBooking(int bookingId, string forename, string surname, string email)
         {
-            using (var conn = new OracleConnection(connectionString))
+            using (OracleConnection conn = new OracleConnection(connectionString))
             {
                 conn.Open();
 
-                using (var transaction = conn.BeginTransaction())
+                using (OracleTransaction transaction = conn.BeginTransaction())
                 {
                     try
                     {
-                        string flightNumber;
+                        string flightNumber = bookingRepository.FindConfirmedBookingFlightNumber(bookingId, forename, surname, email, transaction);
 
-                        string findSql = @"
-                            SELECT b.FlightNumber
-                            FROM Bookings b
-                            JOIN Passengers p ON b.PassengerID = p.PassengerID
-                            WHERE b.BookingID = :bookingID
-                            AND b.Status = 'CONFIRMED'
-                            AND p.Forename = :forename
-                            AND p.Surname = :surname
-                            AND p.Email = :email
-                            FOR UPDATE OF b.Status";
-
-                        using (var cmd = new OracleCommand(findSql, conn))
+                        if (flightNumber == null)
                         {
-                            cmd.Transaction = transaction;
-                            cmd.BindByName = true;
-                            cmd.Parameters.Add("bookingID", OracleDbType.Int32).Value = bookingId;
-                            cmd.Parameters.Add("forename", OracleDbType.Varchar2).Value = forename;
-                            cmd.Parameters.Add("surname", OracleDbType.Varchar2).Value = surname;
-                            cmd.Parameters.Add("email", OracleDbType.Varchar2).Value = email;
-
-                            object result = cmd.ExecuteScalar();
-
-                            if (result == null || result == DBNull.Value)
-                            {
-                                transaction.Rollback();
-                                return false;
-                            }
-
-                            flightNumber = Convert.ToString(result);
+                            transaction.Rollback();
+                            return false;
                         }
 
-                        string cancelSql = @"
-                            UPDATE Bookings
-                            SET Status = 'CANCELLED'
-                            WHERE BookingID = :bookingID
-                            AND Status = 'CONFIRMED'";
+                        bool bookingCancelled = bookingRepository.CancelBooking(bookingId, transaction);
 
-                        using (var cmd = new OracleCommand(cancelSql, conn))
+                        if (!bookingCancelled)
                         {
-                            cmd.Transaction = transaction;
-                            cmd.BindByName = true;
-                            cmd.Parameters.Add("bookingID", OracleDbType.Int32).Value = bookingId;
-
-                            if (cmd.ExecuteNonQuery() != 1)
-                            {
-                                transaction.Rollback();
-                                return false;
-                            }
+                            transaction.Rollback();
+                            return false;
                         }
 
-                        string seatSql = @"
-                            UPDATE Flights
-                            SET NUMSEATAVAIL = NUMSEATAVAIL + 1
-                            WHERE FLIGHTNUMBER = :flightNumber
-                            AND NUMSEATAVAIL < NUMSEATS";
+                        bool seatsUpdated = flightRepository.IncreaseAvailableSeats(flightNumber, transaction);
 
-                        using (var cmd = new OracleCommand(seatSql, conn))
+                        if (!seatsUpdated)
                         {
-                            cmd.Transaction = transaction;
-                            cmd.BindByName = true;
-                            cmd.Parameters.Add("flightNumber", OracleDbType.Varchar2).Value = flightNumber;
-
-                            if (cmd.ExecuteNonQuery() != 1)
-                            {
-                                transaction.Rollback();
-                                return false;
-                            }
+                            transaction.Rollback();
+                            return false;
                         }
 
                         transaction.Commit();
@@ -121,39 +100,28 @@ namespace AirlineSYS.Services
             {
                 conn.Open();
 
-                string sqlQuery = "UPDATE Passengers SET " +
-                                  "Forename = :Forename, " +
-                                  "Surname = :Surname, " +
-                                  "DateOfBirth = :DateOfBirth, " +
-                                  "Email = :Email, " +
-                                  "Phone = :Phone, " +
-                                  "Eircode = :Eircode " +
-                                  "WHERE PassengerID = :PassengerID";
-
-                using (OracleCommand cmd = new OracleCommand(sqlQuery, conn))
+                using (OracleTransaction transaction = conn.BeginTransaction())
                 {
-                    cmd.BindByName = true;
-                    cmd.Parameters.Add(":Forename", OracleDbType.Varchar2).Value = forename;
-                    cmd.Parameters.Add(":Surname", OracleDbType.Varchar2).Value = surname;
-                    cmd.Parameters.Add(":DateOfBirth", OracleDbType.Date).Value = dateOfBirth;
-                    cmd.Parameters.Add(":Email", OracleDbType.Varchar2).Value = email;
-                    cmd.Parameters.Add(":Phone", OracleDbType.Varchar2).Value = phone;
-                    cmd.Parameters.Add(":Eircode", OracleDbType.Varchar2).Value = eircode;
-                    cmd.Parameters.Add(":PassengerID", OracleDbType.Int32).Value = passengerId;
-
-                    int rowsAffected = cmd.ExecuteNonQuery();
-
-                    if (rowsAffected == 1)
+                    try
                     {
+                        bool passengerUpdated = passengerRepository.UpdatePassenger(passengerId, forename, surname, dateOfBirth, email, phone, eircode, transaction);
+
+                        if (!passengerUpdated)
+                        {
+                            transaction.Rollback();
+                            return false;
+                        }
+
+                        transaction.Commit();
                         return true;
                     }
-                    else
+                    catch
                     {
-                        return false;
+                        transaction.Rollback();
+                        throw;
                     }
                 }
             }
         }
-
     }
 }

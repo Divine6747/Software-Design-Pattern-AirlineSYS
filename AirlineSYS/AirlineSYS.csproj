@@ -117,6 +117,12 @@
     </Compile>
     <Compile Include="Operator.cs" />
     <Compile Include="Passenger.cs" />
+    <Compile Include="Repositories\BookingRepository.cs" />
+    <Compile Include="Repositories\FlightRepository.cs" />
+    <Compile Include="Repositories\IBookingRepository.cs" />
+    <Compile Include="Repositories\IFlightRepository.cs" />
+    <Compile Include="Repositories\IPassengerRepository.cs" />
+    <Compile Include="Repositories\PassengerRepository.cs" />
     <Compile Include="Route.cs" />
     <Compile Include="DBconnect.cs" />
     <Compile Include="frmAddAirport.cs">
