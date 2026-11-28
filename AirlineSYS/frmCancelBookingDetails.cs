@@ -7,37 +7,67 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using AirlineSYS.Services;
+using Oracle.ManagedDataAccess.Client;
 
 namespace AirlineSYS
 {   
     public partial class frmCancelBookingDetails : Form
     {
         public string flightNumber;
+        private readonly IBookingService bookingService;
+
         public frmCancelBookingDetails(string flightNumber)
         {
             InitializeComponent();
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.flightNumber = flightNumber; // Initialize flightNumber with the passed value
+            this.flightNumber = flightNumber;
             lblCancelBookingPersonalFlightNumberDetail.Text = flightNumber;
+            bookingService = Program.CreateBookingService();
         }
+        //Constructor Dependency Injection
+        public frmCancelBookingDetails(string flightNumber, IBookingService bookingService)
+        {
+            if (bookingService == null)
+            {
+                throw new ArgumentNullException(nameof(bookingService));
+            }
 
+            InitializeComponent();
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.flightNumber = flightNumber;
+            lblCancelBookingPersonalFlightNumberDetail.Text = flightNumber;
+            this.bookingService = bookingService;
+        }
         private void btnFlightBookingConfirm_Click(object sender, EventArgs e)
         {
-            Booking cancelBooking = new Booking();
-
-            cancelBooking.cancelBooking(Convert.ToInt32(txtCancelBookingID.Text),txtCancelForeName.Text,txtCancelSurname.Text, txtCancelEmail.Text);
-            
-            bool isSeatIncreaseSuccessful = Booking.increaseNumAvailSeat(lblCancelBookingPersonalFlightNumberDetail.Text, 1);
-
-            if (isSeatIncreaseSuccessful)
+            try
             {
-                MessageBox.Show("Cancel Booking successfully! Seats have been increased.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                int bookingID = Convert.ToInt32(txtCancelBookingID.Text);
+                string forename = txtCancelForeName.Text;
+                string surname = txtCancelSurname.Text;
+                string email = txtCancelEmail.Text;
+
+                bool bookingCancelled = bookingService.CancelBooking(bookingID, forename, surname, email);
+
+                if (bookingCancelled)
+                {
+                    MessageBox.Show("Cancel Booking successfully! Seats have been increased.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Failed to cancel booking. Please try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                this.Close();
             }
-            else
+            catch (OracleException ex)
             {
-                MessageBox.Show("Failed to cancel booking. Please try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Oracle Exception: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-            this.Close();
+            catch (Exception ex)
+            {
+                MessageBox.Show("Exception: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }

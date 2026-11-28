@@ -7,21 +7,38 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using AirlineSYS.Services;
 
 namespace AirlineSYS
 {
     public partial class frmAirlineMainMenu : Form
     {
         frmAirlineMainMenu parent;
+        private readonly IBookingService bookingService;
+
         public frmAirlineMainMenu()
         {
             InitializeComponent();
             this.StartPosition = FormStartPosition.CenterScreen;
+            bookingService = Program.CreateBookingService();
         }
         public frmAirlineMainMenu(frmAirlineMainMenu parent)
         {
             InitializeComponent();
             this.parent = parent;
+            bookingService = Program.CreateBookingService();
+        }
+
+        public frmAirlineMainMenu(IBookingService bookingService)
+        {
+            if (bookingService == null)
+            {
+                throw new ArgumentNullException(nameof(bookingService));
+            }
+
+            InitializeComponent();
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.bookingService = bookingService;
         }
 
         private void mnuEndRoute_Click_1(object sender, EventArgs e)
@@ -62,14 +79,14 @@ namespace AirlineSYS
 
         private void mnuUpdateBooking_Click_1(object sender, EventArgs e)
         {
-            frmUpdateBooking frmAirlineMainMenu = new frmUpdateBooking();
+            frmUpdateBooking frmAirlineMainMenu = new frmUpdateBooking(this, bookingService);
             this.Hide();
             frmAirlineMainMenu.Show();
         }
 
         private void mnuCancelBooking_Click_1(object sender, EventArgs e)
         {
-            frmCancelBooking frmAirlineMainMenu = new frmCancelBooking();
+            frmCancelBooking frmAirlineMainMenu = new frmCancelBooking(this, bookingService);
             this.Hide();
             frmAirlineMainMenu.Show();
         }

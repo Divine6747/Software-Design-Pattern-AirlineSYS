@@ -22,20 +22,41 @@ namespace AirlineSYS
         {
             InitializeComponent();
             this.StartPosition = FormStartPosition.CenterScreen;
-            bookingService = new BookingService();
+            bookingService = Program.CreateBookingService();
         }
         public frmUpdateBooking(frmAirlineMainMenu parent)
         {
             InitializeComponent();
             this.parent = parent;
-            bookingService = new BookingService();
+            bookingService = Program.CreateBookingService();
+        }
+
+        public frmUpdateBooking(frmAirlineMainMenu parent, IBookingService bookingService)
+        {
+            if (bookingService == null)
+            {
+                throw new ArgumentNullException(nameof(bookingService));
+            }
+
+            InitializeComponent();
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.parent = parent;
+            this.bookingService = bookingService;
         }
 
         private void munBack_Click(object sender, EventArgs e)
         {
+            if (parent != null && !parent.IsDisposed)
+            {
+                parent.Show();
+            }
+            else
+            {
+                frmAirlineMainMenu frmAirlineMainMenu = new frmAirlineMainMenu();
+                frmAirlineMainMenu.Show();
+            }
+
             this.Close();
-            frmAirlineMainMenu frmAirlineMainMenu = new frmAirlineMainMenu();
-            frmAirlineMainMenu.Show();
         }
 
 

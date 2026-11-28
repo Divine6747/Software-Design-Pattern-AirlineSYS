@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using AirlineSYS.Services;
 
 namespace AirlineSYS
 {
@@ -14,23 +15,48 @@ namespace AirlineSYS
     {
         frmAirlineMainMenu parent;
         private string flightNumber;
+        private readonly IBookingService bookingService;
+
         public frmCancelBooking()
         {
             InitializeComponent();
             this.StartPosition = FormStartPosition.CenterScreen;
+            bookingService = Program.CreateBookingService();
         }
         public frmCancelBooking(frmAirlineMainMenu parent, string flightNumber)
         {
             InitializeComponent();
             this.parent = parent;
             this.flightNumber = flightNumber;
+            bookingService = Program.CreateBookingService();
+        }
+        //Constructor Dependency Injection
+        public frmCancelBooking(frmAirlineMainMenu parent, IBookingService bookingService)
+        {
+            if (bookingService == null)
+            {
+                throw new ArgumentNullException(nameof(bookingService));
+            }
+
+            InitializeComponent();
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.parent = parent;
+            this.bookingService = bookingService;
         }
 
         private void munBack_Click(object sender, EventArgs e)
         {
+            if (parent != null && !parent.IsDisposed)
+            {
+                parent.Show();
+            }
+            else
+            {
+                frmAirlineMainMenu frmAirlineMainMenu = new frmAirlineMainMenu();
+                frmAirlineMainMenu.Show();
+            }
+
             this.Close();
-            frmAirlineMainMenu frmAirlineMainMenu = new frmAirlineMainMenu();
-            frmAirlineMainMenu.Show();
         }
 
         private void btnCancelBookingIDSearch_Click(object sender, EventArgs e)
@@ -90,7 +116,7 @@ namespace AirlineSYS
             if (cancelConfirm == DialogResult.Yes)
             {
                 // Pass the flight number to the constructor of frmCancelBookingDetails
-                frmCancelBookingDetails frmCancelBookingDetails = new frmCancelBookingDetails(lblCancelFlightNumber.Text);
+                frmCancelBookingDetails frmCancelBookingDetails = new frmCancelBookingDetails(lblCancelFlightNumber.Text, bookingService);
                 this.Hide();
                 frmCancelBookingDetails.Show();
             }
